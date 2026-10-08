@@ -41,6 +41,18 @@ function filesToUpload() {
   }
 }
 
+// 儲存格文字：格式化文字（richText）與公式結果也要取出，否則會變成 [object Object] 而漏比對
+function cellText(cell) {
+  let v = cell?.value
+  if (v && typeof v === 'object' && !(v instanceof Date)) {
+    if (Array.isArray(v.richText)) v = v.richText.map((t) => t.text).join('')
+    else if ('result' in v) v = v.result
+    else if ('text' in v) v = v.text
+    else v = ''
+  }
+  return String(v ?? '').trim()
+}
+
 // 從舊 Excel 與表單回覆取出病患姓名（「患者姓名」欄）
 async function patientNames() {
   if (!fs.existsSync(IMPORT_DIR)) return null
@@ -56,10 +68,10 @@ async function patientNames() {
     wb.eachSheet((ws) => {
       ws.eachRow((row) => {
         row.eachCell((cell, col) => {
-          if (String(cell.value ?? '').trim() !== '患者姓名') return
+          if (cellText(cell) !== '患者姓名') return
           // 找到表頭後，往下讀同一欄
           for (let r = row.number + 1; r <= ws.rowCount; r++) {
-            const v = String(ws.getRow(r).getCell(col).value ?? '').trim()
+            const v = cellText(ws.getRow(r).getCell(col))
             if (v.length >= 2 && !['以下空白', '患者姓名'].includes(v) && !/^[\d\s.]+$/.test(v)) names.add(v)
           }
         })
