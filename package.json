@@ -1,0 +1,18 @@
+{
+  "name": "toothtally",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "import": "node scripts/import.mjs",
+    "import:dry": "node scripts/import.mjs --dry-run",
+    "icons": "node scripts/make-icons.mjs",
+    "check-privacy": "node scripts/check-privacy.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@supabase/supabase-js": "^2.45.0",
+    "exceljs": "^4.4.0"
+  }
+}

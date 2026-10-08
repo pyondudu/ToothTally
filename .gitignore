@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+# 舊資料 Excel（含病患姓名，不進 repo）
+import/
+# 含個人資料的本機檔案：交接文件、技師／醫師名單、自訂敏感詞
+HANDOFF.md
+supabase/seed.local.sql
+.privacy-terms
+# 根目錄的截圖
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.heic
