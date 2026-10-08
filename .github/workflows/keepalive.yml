@@ -1,0 +1,26 @@
+# 每天呼叫一次 Supabase，避免免費方案閒置 7 天被暫停（春節等長假）
+# public.ping() 只回傳 'ok'，不讀任何資料；使用網站同一把 Publishable key
+# GitHub 在 repo 60 天沒有更新時會停用排程，因此每次執行也重新啟用自己
+name: Keep Supabase awake
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * *'   # 每天 09:17（台灣時間）
+permissions: { actions: write }
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          res=$(curl -fsS -X POST "$SUPABASE_URL/rest/v1/rpc/ping" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{}')
+          echo "回應：$res"
+          test "$res" = '"ok"'
+      - name: 重新啟用排程（避免 60 天後被停用）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"

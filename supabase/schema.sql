@@ -229,6 +229,12 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 revoke execute on function public.my_role() from public, anon;
 grant execute on function public.my_role() to authenticated;
 
+-- 保持專案活躍：GitHub Actions 每天呼叫一次（免費方案閒置 7 天會暫停）。只回傳 'ok'，不讀任何資料
+create or replace function public.ping()
+returns text language sql stable set search_path = public as $$ select 'ok'::text $$;
+revoke execute on function public.ping() from public;
+grant execute on function public.ping() to anon, authenticated;
+
 -- ─────────────────────────────────────────────
 -- RLS
 --   讀取：admin、staff
