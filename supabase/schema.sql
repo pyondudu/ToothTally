@@ -174,7 +174,7 @@ create trigger records_before_write before insert or update or delete on public.
   for each row execute function public.records_before_write();
 
 create or replace function public.touch_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 begin
   new.updated_at := now();
   return new;
@@ -219,6 +219,15 @@ from (select month, count(*) as record_count, sum(amount) as total
       from public.records where month is not null group by month) t
 left join lateral public.calc_bonus(t.total, t.month) b on true
 left join public.month_closings mc on mc.month = t.month;
+
+-- ─────────────────────────────────────────────
+-- 函式執行權限（Security Advisor 建議）
+--   handle_new_user：只給 auth 建帳號的 trigger 用，任何 API 角色都不需要直接呼叫
+--   my_role：RLS 規則需要，只開放給已登入者（只會回傳呼叫者自己的角色）
+-- ─────────────────────────────────────────────
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.my_role() from public, anon;
+grant execute on function public.my_role() to authenticated;
 
 -- ─────────────────────────────────────────────
 -- RLS
