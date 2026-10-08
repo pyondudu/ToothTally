@@ -19,6 +19,12 @@ export function todayStr() {
 }
 
 // 月份一律用該月 1 日表示（'2026-10-01'），與資料庫 records.month 相同
+// timestamptz（如 created_at）→ 台灣本地日期 'YYYY-MM-DD'
+export function localDate(ts) {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 export function monthOf(dateStr) {
   return dateStr.slice(0, 8) + '01'
 }

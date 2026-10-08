@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { store } from '../lib/store'
+import { store, RECORD_SELECT } from '../lib/store'
+import { exportMonth } from '../lib/exportExcel'
 import { addMonths, fmtMonth, fmtMoney, fmtPct, fromMonthParam, monthParam, thisMonth } from '../lib/util'
 import ToothBuddy from '../components/ToothBuddy.vue'
 
@@ -14,7 +15,9 @@ const go = (n) => router.replace({ query: { m: monthParam(addMonths(month.value,
 const totals = ref([])     // monthly_clinic_totals
 const bonus = ref(null)    // calc_bonus 結果
 const closing = ref(null)  // month_closings
-const pendingCount = ref(0)
+// 尚未送回：依「登記月份」分組（還沒有送回日，無法歸到營業額月份）
+const pending = ref([])  // [{ month: 10, year: 2026, count }]
+const pendingCount = computed(() => pending.value.reduce((s, p) => s + p.count, 0))
 const loading = ref(false)
 const err = ref('')
 
@@ -25,13 +28,19 @@ async function load() {
   const [tot, clo, pend] = await Promise.all([
     supabase.from('monthly_clinic_totals').select('*').eq('month', m),
     supabase.from('month_closings').select('*').eq('month', m).maybeSingle(),
-    supabase.from('records').select('id', { count: 'exact', head: true }).is('return_date', null),
+    supabase.from('records').select('created_at').is('return_date', null),
   ])
   const e = tot.error || clo.error || pend.error
   if (e) { err.value = '讀取失敗：' + e.message; loading.value = false; return }
   totals.value = tot.data
   closing.value = clo.data
-  pendingCount.value = pend.count ?? 0
+  const groups = new Map()
+  for (const r of pend.data) {
+    const d = new Date(r.created_at)
+    const key = d.getFullYear() * 100 + d.getMonth() + 1
+    groups.set(key, (groups.get(key) ?? 0) + 1)
+  }
+  pending.value = [...groups].sort(([a], [b]) => a - b).map(([key, count]) => ({ year: Math.floor(key / 100), month: key % 100, count }))
   const sum = tot.data.reduce((s, r) => s + Number(r.amount), 0)
   const b = await supabase.rpc('calc_bonus', { p_total: sum, p_month: m })
   if (b.error) err.value = '獎金計算失敗：' + b.error.message
@@ -77,6 +86,20 @@ async function reopenMonth() {
   busy.value = false
   if (error) { err.value = '取消結算失敗：' + error.message; return }
   load()
+}
+
+// ── 匯出 Excel 給會計（admin）──
+const exporting = ref(false)
+async function exportExcel() {
+  exporting.value = true
+  err.value = ''
+  try {
+    await exportMonth({ supabase, store, month: month.value, closing: closing.value, bonus: bonus.value, recordSelect: RECORD_SELECT })
+  } catch (e) {
+    err.value = '匯出失敗：' + e.message
+  } finally {
+    exporting.value = false
+  }
 }
 </script>
 
@@ -125,7 +148,9 @@ async function reopenMonth() {
     </div>
 
     <router-link v-if="pendingCount" class="pending-note card" :to="{ path: '/records', query: { pending: 1 } }">
-      <span><strong>{{ pendingCount }}</strong> 筆尚未送回，不計入營業額</span>
+      <span>
+        <template v-for="(p, i) in pending" :key="p.year * 100 + p.month">{{ i ? '、' : '' }}<template v-if="pending.some((q) => q.year !== p.year)">{{ p.year }} 年 </template>{{ p.month }} 月 <strong>{{ p.count }}</strong> 筆</template>尚未送回，不計入營業額
+      </span>
       <span class="muted">補填送回日 ›</span>
     </router-link>
 
@@ -149,6 +174,14 @@ async function reopenMonth() {
         <p class="muted">確認本月資料無誤後，可結算鎖定。</p>
         <button class="btn small" @click="confirmClose = true">結算本月</button>
       </template>
+    </section>
+
+    <section v-if="store.isAdmin" class="card closing">
+      <p>
+        匯出 {{ fmtMonth(month) }} 的彙整與各診所明細（含病患姓名）給會計
+        <span v-if="!closing" class="warn-text">・尚未結算，檔案會標示「未結算」</span>
+      </p>
+      <button class="btn small" :disabled="exporting || loading" @click="exportExcel">{{ exporting ? '產生中…' : '匯出 Excel' }}</button>
     </section>
   </div>
 </template>

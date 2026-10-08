@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { store, RECORD_SELECT } from '../lib/store'
-import { addMonths, fmtDate, fmtMonth, fmtMoney, fromMonthParam, monthParam, thisMonth, todayStr } from '../lib/util'
+import { addMonths, fmtDate, fmtMonth, fmtMoney, fromMonthParam, localDate, monthParam, thisMonth, todayStr } from '../lib/util'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,6 +145,7 @@ async function remove(r) {
           <span>送件 {{ fmtDate(r.send_date) }}</span>
           <span>約診 {{ fmtDate(r.appt_date) }}</span>
           <span v-if="r.return_date">送回 {{ fmtDate(r.return_date) }}</span>
+          <span v-else>登記 {{ fmtDate(localDate(r.created_at)) }}</span>
         </div>
         <p v-if="r.note" class="rec-note">{{ r.note }}</p>
 

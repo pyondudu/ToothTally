@@ -250,3 +250,4 @@ label.invalid::after { content: "此欄必填"; font-size: 0.75rem; font-weight:
 .recent li .muted { grid-column: 1; }
 .recent-amt { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 .recent li.fresh { background: var(--ok-bg); }
+.warn-text { color: var(--warn); }
