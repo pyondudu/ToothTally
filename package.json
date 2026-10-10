@@ -8,6 +8,9 @@
     "import:dry": "node scripts/import.mjs --dry-run",
     "icons": "node scripts/make-icons.mjs",
     "check-privacy": "node scripts/check-privacy.mjs",
+    "backup": "node scripts/backup.mjs",
+    "backup:check": "node scripts/backup.mjs --check",
+    "restore": "node scripts/restore.mjs",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {

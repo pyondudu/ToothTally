@@ -1,5 +1,5 @@
 // 個資外洩檢查：部署、git commit／push 前執行 `npm run check-privacy`
-//   1. 不可上傳的路徑（import/、.env、根目錄截圖…）不能出現在待上傳清單
+//   1. 不可上傳的路徑（import/、backups/、.env、根目錄截圖…）不能出現在待上傳清單
 //   2. 從 import/ 的舊 Excel 取出所有病患姓名，加上 .privacy-terms 的自訂敏感詞，逐一比對待上傳的檔案內容
 // 待上傳清單：在 git repo 中為「已追蹤＋已暫存＋未忽略的新檔」；否則為專案內所有未被 .gitignore 排除的檔案
 // 有任何問題就以非 0 結束，git hook 會因此擋下 commit。
@@ -17,6 +17,7 @@ const FORBIDDEN = [
   /(^|\/)\.env$/,
   /^[^/]+\.(png|jpe?g|webp|heic|xlsx|xls|csv)$/i, // 根目錄的截圖、試算表
   /\.(xlsx|xls|csv)$/i,                           // 任何位置的試算表
+  /(^|\/)backups\//, /\.ttbk$/i, /\.backup\.json$/i, // 備份檔
 ]
 
 function filesToUpload() {
@@ -26,7 +27,7 @@ function filesToUpload() {
     return out.toString().split('\0').filter(Boolean)
   } catch {
     // 還不是 git repo：自己走訪目錄，套用最基本的排除
-    const skip = new Set(['node_modules', 'dist', '.git', 'import'])
+    const skip = new Set(['node_modules', 'dist', '.git', 'import', 'backups'])
     const list = []
     const walk = (dir) => {
       for (const e of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {

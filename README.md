@@ -7,6 +7,7 @@
 | `supabase/schema.sql` | 資料庫結構、權限（RLS）、獎金計算、月份結算鎖定、診所與價目種子資料（可重複執行；技師與醫師名單不在 repo） |
 | `web/` | 網頁（Vue 3 + Vite，PWA） |
 | `scripts/import.mjs` | 舊 Excel 一次性匯入（本機執行） |
+| `scripts/backup.mjs`、`scripts/restore.mjs` | 本機加密備份與還原 |
 | `scripts/check-privacy.mjs` | 個資外洩檢查（git commit／push 前自動執行） |
 | `scripts/make-icons.mjs` | 由 `web/src/components/toothSprite.js` 產生 app 圖示 |
 | `.github/workflows/deploy-web.yml` | push `web/` 變更時自動部署 GitHub Pages |
@@ -19,6 +20,7 @@
 - `import/`（舊 Excel）、`.env`、截圖、`HANDOFF.md`、`supabase/seed.local.sql`（技師與醫師名單）、`.privacy-terms` 都被 `.gitignore` 排除。
 - `npm install` 會把 git hook 指向 `.githooks/`：每次 commit／push 前執行 `npm run check-privacy`，從 `import/` 的舊 Excel 取出所有病患姓名，再加上 `.privacy-terms`（每行一個自訂敏感詞，例如 Email、技師與醫師名字），比對每個待上傳檔案，發現就擋下。
 - 網頁裡的 Publishable key 是設計上可公開的金鑰；資料由 RLS 保護，未登入者讀不到任何資料。
+- 備份檔只存在本機 `backups/`（或隨身碟），以備份密碼 AES-256 加密；見第 5 節。
 - 管理者匯出的 Excel 含病患姓名，只在瀏覽器產生下載、不會上傳；交給會計時請用私訊或內部信箱。
 
 ## 獎金公式
@@ -104,3 +106,25 @@ SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run import   # 正式匯入�
 ## 4. 圖示
 
 角色像素圖的唯一來源是 `web/src/components/toothSprite.js`，改完執行 `npm run icons` 重新產生 `web/public/icon.svg`、`icon-192.png`、`icon-512.png`。畫面上的吉祥物元件是 `web/src/components/ToothBuddy.vue`（表情依每人獎金：倒扣難過／1 萬以內一般／超過 1 萬開心／超過 2 萬興奮；已結算另外顯示勾勾）。
+
+## 5. 備份與還原
+
+Supabase 免費方案沒有可下載的自動備份，請**每月結算後**在本機備份一次，並複製一份到隨身碟或外接硬碟。
+
+```bash
+npm run backup                            # 管理者 Email＋密碼登入 → 設定備份密碼 → backups/ToothTally-日期.ttbk
+npm run backup -- --dir /media/<隨身碟>    # 直接存到隨身碟
+npm run backup:check -- <檔案>            # 驗證備份能解開、印出各表筆數（不寫出明文）
+```
+- 讀取 `web/.env` 的網址與 Publishable key，以管理者身分透過 RLS 讀取全部資料；**不需要 secret key**，密碼都不會存檔。
+- 管理者若一直用 Email 連結登入、沒有密碼：Supabase → Authentication → Users → 自己的帳號 → Send password recovery（或後台直接設定密碼）。
+- 備份檔用 AES-256-GCM＋scrypt 加密；**備份密碼遺失就無法解開**，請另外記在安全的地方（例如密碼管理器）。
+- 需要看明文時：`npm run backup -- --decrypt <檔案>` 產生 `.backup.json`（含病患姓名，用完刪除）。
+- `backups/`、`*.ttbk`、`*.backup.json` 已被 `.gitignore` 排除，個資檢查也會擋下。
+
+**還原**（資料遺失、重建專案時）：先在新專案執行 `supabase/schema.sql`，再
+```bash
+npm run restore -- <檔案>                                                        # 預覽筆數
+SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run restore -- <檔案> --yes        # 正式寫入
+```
+帳號無法從備份還原；之後照第 1 節重建帳號、設定角色並綁定技師。Secret key 用完到後台輪替。

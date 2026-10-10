@@ -3,6 +3,10 @@ dist
 .env
 # 舊資料 Excel（含病患姓名，不進 repo）
 import/
+# 備份（含病患姓名；.ttbk 已加密，解密後的 JSON 未加密）
+backups/
+*.ttbk
+*.backup.json
 # 含個人資料的本機檔案：交接文件、技師／醫師名單、自訂敏感詞
 HANDOFF.md
 supabase/seed.local.sql
