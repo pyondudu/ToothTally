@@ -57,9 +57,13 @@ const total = computed(() => clinicRows.value.reduce((s, r) => s + r.amount, 0))
 const count = computed(() => clinicRows.value.reduce((s, r) => s + r.count, 0))
 const gap = computed(() => (bonus.value ? Number(bonus.value.threshold) - total.value : null))
 
+// 牙齒表情依每人獎金分級：倒扣／一萬以內／一萬以上／兩萬以上
 const mood = computed(() => {
-  if (closing.value) return 'done'
-  if (gap.value !== null && gap.value < 0) return 'happy'
+  if (!bonus.value) return 'idle'
+  const p = Number(bonus.value.per_person)
+  if (p < 0) return 'sad'
+  if (p > 20000) return 'excited'
+  if (p > 10000) return 'happy'
   return 'idle'
 })
 
@@ -115,7 +119,7 @@ async function exportExcel() {
     <p v-if="err" class="msg error">{{ err }}</p>
 
     <section class="bonus card" :class="{ closed: closing }">
-      <ToothBuddy :size="72" :mood="mood" />
+      <ToothBuddy :size="72" :mood="mood" :closed="!!closing" />
       <div class="bonus-body">
         <template v-if="bonus">
           <div class="bonus-label">每人獎金</div>

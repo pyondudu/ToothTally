@@ -1,7 +1,10 @@
 <script setup>
 // 牙齒吉祥物（16×16 像素，inline SVG）
 //   size：顯示尺寸（px）。登入頁約 96、標題列約 28
-//   mood：'idle' 一般眨眼浮動／'happy' 已超過門檻，跳躍＋閃光／'done' 當月已結算，滿足表情＋勾勾
+//   mood：依每人獎金分級
+//     'sad' 未達門檻（倒扣），皺眉＋嘴角往下／'idle' 一般眨眼浮動
+//     'happy' 笑眼（^ ^）／'excited' 笑眼＋跳躍＋閃光
+//   closed：當月已結算，右上角顯示勾勾（不影響表情）
 //   celebrate(text)：跳一下並顯示短訊息（例如登記成功時），以 ref 呼叫
 import { computed, ref } from 'vue'
 import { toRects, PALETTE } from './toothSprite.js'
@@ -9,27 +12,38 @@ import { toRects, PALETTE } from './toothSprite.js'
 const props = defineProps({
   size: { type: Number, default: 28 },
   mood: { type: String, default: 'idle' },
+  closed: { type: Boolean, default: false },
 })
 
 const rects = toRects()
 const pick = (...chs) => rects.filter((r) => chs.includes(r.ch))
-const body = pick('O', 'W', 'S', 'C', 'M')
+const body = pick('O', 'W', 'S', 'C')
 const eyes = pick('E')
+const mouth = pick('M')
 
-// 結算後：笑瞇眼（^ ^），先用牙齒本體色蓋掉原本眼睛的位置
-const eyesDone = [
+// 開心：笑瞇眼（^ ^），先用牙齒本體色蓋掉原本眼睛的位置
+const eyesSmile = [
   ...eyes.map((r) => ({ ...r, fill: PALETTE.W })),
   { x: 4, y: 6, w: 1, fill: PALETTE.E }, { x: 5, y: 5, w: 1, fill: PALETTE.E }, { x: 6, y: 6, w: 1, fill: PALETTE.E },
   { x: 9, y: 6, w: 1, fill: PALETTE.E }, { x: 10, y: 5, w: 1, fill: PALETTE.E }, { x: 11, y: 6, w: 1, fill: PALETTE.E },
 ]
-// 超過門檻：周圍小閃光
+// 難過：倒八字眉（內側高、外側低）＋嘴角往下（∩）
+const brows = [
+  { x: 4, y: 4, w: 1, fill: PALETTE.E }, { x: 5, y: 3, w: 1, fill: PALETTE.E },
+  { x: 10, y: 3, w: 1, fill: PALETTE.E }, { x: 11, y: 4, w: 1, fill: PALETTE.E },
+]
+const mouthSad = [
+  { x: 7, y: 8, w: 2, fill: PALETTE.M },
+  { x: 6, y: 9, w: 1, fill: PALETTE.M }, { x: 9, y: 9, w: 1, fill: PALETTE.M },
+]
+// 很興奮：周圍小閃光
 const SPARK = '#f6c45b'
 const twinkles = [
   { x: 1, y: 2, w: 1, fill: SPARK },
   { x: 15, y: 4, w: 1, fill: SPARK },
   { x: 13, y: 1, w: 1, fill: SPARK },
 ]
-// 結算後：右上角勾勾
+// 已結算：右上角勾勾
 const check = [
   { x: 12, y: 2, w: 1 }, { x: 13, y: 3, w: 1 }, { x: 14, y: 2, w: 1 }, { x: 15, y: 1, w: 1 },
 ]
@@ -56,17 +70,21 @@ const classes = computed(() => ['buddy', `mood-${props.mood}`, { hopping: hoppin
       <ellipse class="shadow" cx="8" cy="15.3" rx="4.6" ry="0.6" shape-rendering="auto" />
       <g class="bob">
         <rect v-for="(r, i) in body" :key="'b' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
-        <g v-if="mood === 'done'">
-          <rect v-for="(r, i) in eyesDone" :key="'d' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
+        <rect v-for="(r, i) in (mood === 'sad' ? mouthSad : mouth)" :key="'m' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
+        <g v-if="mood === 'happy' || mood === 'excited'">
+          <rect v-for="(r, i) in eyesSmile" :key="'s' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
         </g>
         <g v-else class="eyes">
           <rect v-for="(r, i) in eyes" :key="'e' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
         </g>
+        <g v-if="mood === 'sad'">
+          <rect v-for="(r, i) in brows" :key="'w' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
+        </g>
       </g>
-      <g v-if="mood === 'happy'" class="twinkles">
+      <g v-if="mood === 'excited'" class="twinkles">
         <rect v-for="(r, i) in twinkles" :key="'t' + i" :x="r.x" :y="r.y" :width="r.w" height="1" :fill="r.fill" />
       </g>
-      <g v-if="mood === 'done'" class="check" fill="#2f9e6e">
+      <g v-if="closed" class="check" fill="#2f9e6e">
         <rect v-for="(r, i) in check" :key="'c' + i" :x="r.x" :y="r.y" :width="r.w" height="1" />
       </g>
     </svg>
@@ -81,15 +99,15 @@ svg { display: block; overflow: visible; }
 .bob { animation: bob 2.4s ease-in-out infinite; }
 .eyes { transform-origin: 0 5.5px; animation: blink 4.2s infinite; }
 
-/* 超過門檻：連續小跳＋閃光 */
-.mood-happy .bob { animation: jump 0.9s ease-in-out infinite; }
-.mood-happy .shadow { animation: shadow-jump 0.9s ease-in-out infinite; }
+/* 很興奮：連續小跳＋閃光 */
+.mood-excited .bob { animation: jump 0.9s ease-in-out infinite; }
+.mood-excited .shadow { animation: shadow-jump 0.9s ease-in-out infinite; }
 .twinkles rect { animation: twinkle 1.2s steps(2, jump-none) infinite; }
 .twinkles rect:nth-child(2) { animation-delay: 0.4s; }
 .twinkles rect:nth-child(3) { animation-delay: 0.8s; }
 
-/* 已結算：慢慢浮動 */
-.mood-done .bob { animation-duration: 3.6s; }
+/* 難過：慢慢浮動 */
+.mood-sad .bob { animation-duration: 3.6s; }
 
 /* 登記成功：跳一下 */
 .hopping .bob { animation: hop 0.6s ease-out 2; }
