@@ -5,6 +5,8 @@ import { configured, supabase } from './lib/supabase'
 import { store, initAuth } from './lib/store'
 import Login from './views/Login.vue'
 import ToothBuddy from './components/ToothBuddy.vue'
+import AppVersion from './components/AppVersion.vue'
+import { update, applyUpdate } from './lib/version'
 
 const router = useRouter()
 const ready = ref(false)
@@ -32,6 +34,10 @@ async function logout() {
     <p>請複製 <code>web/.env.example</code> 為 <code>web/.env</code>，填入 Project URL 與 Publishable key 後重新啟動。</p>
   </div>
   <template v-else-if="ready">
+    <div v-if="update.hasUpdate" class="update-bar" role="status">
+      <span>有新版本</span>
+      <button class="btn primary small" @click="applyUpdate">立即更新</button>
+    </div>
     <Login v-if="!store.session" />
     <template v-else>
       <header class="topbar">
@@ -55,5 +61,6 @@ async function logout() {
         <router-view />
       </main>
     </template>
+    <AppVersion />
   </template>
 </template>

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
+import { watchForUpdates } from './lib/version'
 import Overview from './views/Overview.vue'
 import RecordForm from './views/RecordForm.vue'
 import Records from './views/Records.vue'
@@ -22,5 +23,6 @@ const router = createRouter({
 createApp(App).use(router).mount('#app')
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {})
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {})
 }
+watchForUpdates()
