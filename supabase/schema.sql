@@ -313,6 +313,8 @@ insert into public.price_items (clinic_id, name, unit_price, sort, active) value
   (null, 'Denture', 3000, 90, false)   -- 115/05 一筆：顧醫師代印，收 3000 算技工所
 on conflict (clinic_id, name) do nothing;
 
+-- 目前獎金設定正式自 2026-05 啟用。線上資料庫另有一筆 2026-04 起的同數值設定，
+-- 是技師要求試算「4 月若套用此設定的獎金」而加的，並非 4 月實際適用的規則
 insert into public.bonus_settings (effective_from, threshold, rate, max_deduction, share)
 values ('2026-05-01', 178000, 0.4, 3000, 0.5)
 on conflict (effective_from) do nothing;

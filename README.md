@@ -101,8 +101,11 @@ Supabase 免費方案連續 7 天沒有活動會暫停。`keepalive.yml` 每天 
 npm install
 npm run import:dry                       # 只讀檔，印出各月合計與預計獎金
 SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run import   # 正式匯入（可重跑，不會重複）
+SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run import -- --only=11504   # 只補匯入某個工作表，不動既有紀錄
 ```
-舊 Excel 放在 `import/`（不進 repo）。只匯入 115/05～115/09 工作表與表單回覆。
+舊 Excel 放在 `import/`（不進 repo）。只匯入 115/04～115/09 工作表與表單回覆（115/04 於 2026-10-28 補匯入）。
+
+> 註：目前獎金設定正式自 **2026 年 5 月**啟用。設定頁中「2026 年 4 月起」那筆數值相同，是技師要求想看 4 月若套用此設定的獎金而加的試算，4 月實際並未適用此規則。
 
 ## 4. 圖示
 

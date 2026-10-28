@@ -1,7 +1,9 @@
-// 舊資料匯入：把 import/ 下的兩家診所 Excel（11505～11509）與 Google 表單回覆匯入 Supabase。
+// 舊資料匯入：把 import/ 下的兩家診所 Excel（11504～11509）與 Google 表單回覆匯入 Supabase。
 //
 //   node scripts/import.mjs --dry-run   只讀檔、印出各月合計與預計獎金，不連資料庫
 //   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/import.mjs
+//   ... node scripts/import.mjs --only=11504   只匯入指定工作表（不含表單回覆），補匯入用，
+//                                             不會動到已匯入、可能已結算或在 App 改過的紀錄
 //
 // service_role key 只放在本機環境變數，不要寫進任何檔案。
 // 以 import_key（檔名:工作表:列號／form:時間戳記）upsert，可重複執行。
@@ -16,8 +18,10 @@ const CLINIC_FILES = [
   { clinic: '小檜溪', file: '小檜溪一日假牙登記表(115-09).xlsx' },
 ]
 const FORM_FILE = '工作紀錄表 的副本 (回覆).xlsx'
-const SHEET_FROM = '11505'
-const SHEET_TO = '11509'
+const only = process.argv.find(a => a.startsWith('--only='))?.slice(7)
+if (only !== undefined && !/^\d{5}$/.test(only)) throw new Error('--only 請給工作表名稱，例如 --only=11504')
+const SHEET_FROM = only ?? '11504'
+const SHEET_TO = only ?? '11509'
 
 // 目前價目（與 supabase/schema.sql 種子資料一致），dry-run 與表單回覆帶金額用
 const PRICES = {
@@ -250,7 +254,7 @@ async function main() {
       console.error(`⚠ 略過：${e.message}`)
     }
   }
-  rows.push(...await readForm())
+  if (!only) rows.push(...await readForm())
   const unknown = report(rows)
   if (dryRun) return
   if (unknown.length) throw new Error('有材質對應不到價目表，請在 ITEM_ALIASES 補對應或在 schema.sql 新增項目後再匯入')
